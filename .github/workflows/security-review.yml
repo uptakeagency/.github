@@ -135,13 +135,32 @@ jobs:
           DO NOT make code quality or style suggestions, focus only on security.
           """
 
+          import time
+
+          MAX_RETRIES = 3
+          RETRY_DELAY = 35  # seconds
+          result = None
+
           try:
-              response = client.models.generate_content(
-                  model="gemini-2.0-flash",
-                  contents=prompt
-              )
-              result = response.text
-              print(result)
+              for attempt in range(MAX_RETRIES):
+                  try:
+                      response = client.models.generate_content(
+                          model="gemini-2.0-flash",
+                          contents=prompt
+                      )
+                      result = response.text
+                      print(result)
+                      break
+                  except Exception as e:
+                      error_str = str(e)
+                      if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                          if attempt < MAX_RETRIES - 1:
+                              print(f"Rate limit hit, waiting {RETRY_DELAY}s before retry {attempt + 2}/{MAX_RETRIES}...")
+                              time.sleep(RETRY_DELAY)
+                              continue
+                      raise
+              else:
+                  raise Exception("Rate limit exceeded after retries")
 
               # Save result for PR comment
               with open("security_review.md", "w") as f:
