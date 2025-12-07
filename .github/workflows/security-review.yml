@@ -208,11 +208,32 @@ jobs:
             const fs = require('fs');
             const review = fs.readFileSync('security_review.md', 'utf8');
 
+            // Get PR number - either from context (pull_request trigger) or find from branch (workflow_dispatch)
+            let prNumber = context.issue?.number;
+
+            if (!prNumber) {
+              // For workflow_dispatch, find PR by head ref
+              const branch = context.ref.replace('refs/heads/', '');
+              const { data: prs } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${branch}`,
+                state: 'open'
+              });
+
+              if (prs.length > 0) {
+                prNumber = prs[0].number;
+              } else {
+                console.log('No open PR found for branch:', branch);
+                return;
+              }
+            }
+
             // Find existing bot comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: prNumber,
             });
 
             const botComment = comments.find(c =>
@@ -233,7 +254,7 @@ jobs:
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number: prNumber,
                 body: review
               });
             }
