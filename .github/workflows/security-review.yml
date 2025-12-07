@@ -40,15 +40,23 @@ jobs:
       - name: Get changed files
         id: changed
         run: |
+          BASE_REF="${{ github.base_ref }}"
+          if [ -z "$BASE_REF" ]; then
+            BASE_REF="main"
+          fi
           echo "files<<EOF" >> $GITHUB_OUTPUT
-          git diff --name-only origin/${{ github.base_ref }}...HEAD >> $GITHUB_OUTPUT
+          git diff --name-only origin/${BASE_REF}...HEAD >> $GITHUB_OUTPUT || echo "Unable to get diff" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Get diff content
         id: diff
         run: |
+          BASE_REF="${{ github.base_ref }}"
+          if [ -z "$BASE_REF" ]; then
+            BASE_REF="main"
+          fi
           echo "content<<EOF" >> $GITHUB_OUTPUT
-          git diff origin/${{ github.base_ref }}...HEAD >> $GITHUB_OUTPUT
+          git diff origin/${BASE_REF}...HEAD >> $GITHUB_OUTPUT || echo "Unable to get diff" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Run AI Security Review
