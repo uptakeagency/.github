@@ -1,4 +1,4 @@
-# c3nx Organization GitHub Configuration
+# uptakeagency Organization GitHub Configuration
 
 This repository contains organization-wide GitHub configurations and reusable workflows.
 
@@ -19,7 +19,7 @@ on:
 
 jobs:
   security:
-    uses: c3nx/.github/.github/workflows/security-review.yml@main
+    uses: uptakeagency/.github/.github/workflows/security-review.yml@main
     secrets:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY_CI }}
 ```
@@ -29,7 +29,7 @@ jobs:
 ```yaml
 jobs:
   security:
-    uses: c3nx/.github/.github/workflows/security-review.yml@main
+    uses: uptakeagency/.github/.github/workflows/security-review.yml@main
     with:
       fail_on_critical: true   # Fail workflow on CRITICAL issues (default: true)
       fail_on_high: false      # Fail workflow on HIGH issues (default: false)
