@@ -66,7 +66,7 @@ jobs:
         run: |
           python << 'SCRIPT'
           import os
-          import json
+          import re
           from google import genai
 
           api_key = os.environ.get("GEMINI_API_KEY")
@@ -82,6 +82,20 @@ jobs:
           MAX_DIFF_SIZE = 100000  # ~100KB
           if len(diff_content) > MAX_DIFF_SIZE:
               diff_content = diff_content[:MAX_DIFF_SIZE] + "\n\n[... DIFF TRUNCATED - Too large for full analysis ...]"
+
+          # Mask potential secrets in diff content before sending to AI
+          SECRET_PATTERNS = [
+              (r'(?i)(api[_-]?key|apikey|secret|password|passwd|token|credential|auth)["\']?\s*[:=]\s*["\']?[A-Za-z0-9_\-]{8,}', '[MASKED_SECRET]'),
+              (r'(?i)(bearer|basic)\s+[A-Za-z0-9_\-\.]+', '[MASKED_AUTH]'),
+              (r'ghp_[A-Za-z0-9]{36}', '[MASKED_GITHUB_TOKEN]'),
+              (r'gho_[A-Za-z0-9]{36}', '[MASKED_GITHUB_TOKEN]'),
+              (r'github_pat_[A-Za-z0-9_]{22,}', '[MASKED_GITHUB_TOKEN]'),
+              (r'sk-[A-Za-z0-9]{32,}', '[MASKED_OPENAI_KEY]'),
+              (r'AIza[A-Za-z0-9_\-]{35}', '[MASKED_GOOGLE_KEY]'),
+              (r'xox[baprs]-[A-Za-z0-9\-]+', '[MASKED_SLACK_TOKEN]'),
+          ]
+          for pattern, replacement in SECRET_PATTERNS:
+              diff_content = re.sub(pattern, replacement, diff_content)
 
           if not diff_content.strip():
               print("No code changes to review")
@@ -178,8 +192,10 @@ jobs:
                   f.write(f"has_high={str(has_high).lower()}\n")
 
           except Exception as e:
+              error_type = type(e).__name__
               error_str = str(e)
-              print(f"Error: {e}")
+              # Don't log full error - might contain sensitive info like API keys
+              print(f"Error type: {error_type}")
 
               # Check if this is a quota exhaustion error (not just temporary rate limit)
               if "limit: 0" in error_str or "RESOURCE_EXHAUSTED" in error_str:
